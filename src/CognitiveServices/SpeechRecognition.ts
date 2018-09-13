@@ -1,4 +1,4 @@
-import * as CognitiveSpeech from 'microsoft-speech-browser-sdk/Speech.Browser.Sdk';
+import * as CognitiveSpeech from 'microsoft-speech-browser-sdk-cris/Speech.Browser.Sdk';
 import updateIn from 'simple-update-in';
 import * as konsole from '../Konsole';
 import { Action, Func, Speech } from '../SpeechModule';
@@ -19,6 +19,7 @@ export interface ICognitiveServicesSpeechRecognizerProperties {
     fetchCallback?: (authFetchEventId: string) => Promise<string>;
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
     resultForm?: string;
+    cid?: string;
 }
 
 export class SpeechRecognizer implements Speech.ISpeechRecognizer {
@@ -51,7 +52,8 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
                     new CognitiveSpeech.Device('WebChat', 'WebChat', '1.0.00000'))),
             recognitionMode,        // Speech.RecognitionMode.Interactive  (Options - Interactive/Conversation/Dictation>)
             locale,                 // Supported laguages are specific to each recognition mode. Refer to docs.
-            format
+            format,
+            properties.cid          // Cris endpoint id
         );
 
         let authentication;

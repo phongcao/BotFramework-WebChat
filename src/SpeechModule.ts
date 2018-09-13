@@ -279,7 +279,7 @@ export namespace Speech {
                 }
                 const parser = new DOMParser();
                 const dom = parser.parseFromString(text, 'text/xml');
-                const nodes = dom.documentElement.childNodes;
+                const nodes = dom.documentElement.children;
                 this.processNodes(nodes, chunks);
             } else {
                 chunks.push(text);
@@ -385,13 +385,13 @@ export namespace Speech {
         // * utterenance
         // * number which is delay in msg
         // * url which is an audio file
-        private processNodes(nodes: NodeList, output: any[]): void {
+        private processNodes(nodes: HTMLCollection, output: any[]): void {
             // tslint:disable-next-line:prefer-for-of
             for (let i = 0; i < nodes.length; i++) {
                 const node = nodes[i];
                 switch (node.nodeName) {
                     case 'p':
-                        this.processNodes(node.childNodes, output);
+                        this.processNodes(node.children, output);
                         output.push(250);
                         break;
                     case 'break':
@@ -421,7 +421,7 @@ export namespace Speech {
                     case 'w':
                     case 'phoneme': //
                     case 'voice':
-                        this.processNodes(node.childNodes, output);
+                        this.processNodes(node.children, output);
                         break;
                     default:
                         // Todo: coalesce consecutive non numeric / non html entries.

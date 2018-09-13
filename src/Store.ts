@@ -448,7 +448,7 @@ export const history: Reducer<HistoryState> = (
             const activity = state.activities[i];
             const newActivity = {
                 ...activity,
-                suggestedActions: undefined
+                suggestedActions: undefined as any
             };
             return {
                 ...state,
@@ -548,20 +548,20 @@ import 'rxjs/add/observable/bindCallback';
 import 'rxjs/add/observable/empty';
 import 'rxjs/add/observable/of';
 
-const sendMessageEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const sendMessageEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Send_Message')
-    .map(action => {
+    .map((action: any) => {
         const state = store.getState();
         const clientActivityId = state.history.clientActivityBase + (state.history.clientActivityCounter - 1);
         return ({ type: 'Send_Message_Try', clientActivityId } as HistoryAction);
     });
 
-const trySendMessageEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const trySendMessageEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Send_Message_Try')
-    .flatMap(action => {
+    .flatMap((action: any) => {
         const state = store.getState();
         const clientActivityId = action.clientActivityId;
-        const activity = state.history.activities.find(activity => activity.channelData && activity.channelData.clientActivityId === clientActivityId);
+        const activity = state.history.activities.find((activity: any) => activity.channelData && activity.channelData.clientActivityId === clientActivityId);
         if (!activity) {
             konsole.log('trySendMessage: activity not found');
             return Observable.empty<HistoryAction>();
@@ -579,16 +579,16 @@ const trySendMessageEpic: Epic<ChatActions, ChatState> = (action$, store) =>
         }
 
         return state.connection.botConnection.postActivity(activity)
-        .map(id => ({ type: 'Send_Message_Succeed', clientActivityId, id } as HistoryAction))
-        .catch(error => Observable.of({ type: 'Send_Message_Fail', clientActivityId } as HistoryAction));
+        .map((id: any) => ({ type: 'Send_Message_Succeed', clientActivityId, id } as HistoryAction))
+        .catch((error: any) => Observable.of({ type: 'Send_Message_Fail', clientActivityId } as HistoryAction));
     });
 
-const speakObservable = Observable.bindCallback<string, string, {}, {}>(Speech.SpeechSynthesizer.speak);
+const speakObservable: any = Observable.bindCallback<string, string, {}, {}, any>(Speech.SpeechSynthesizer.speak);
 
-const speakSSMLEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const speakSSMLEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Speak_SSML')
-    .filter(action => action.ssml )
-    .mergeMap(action => {
+    .filter((action: any) => action.ssml )
+    .mergeMap((action: any) => {
 
         let onSpeakingStarted = null;
         let onSpeakingFinished = () => nullAction;
@@ -599,16 +599,16 @@ const speakSSMLEpic: Epic<ChatActions, ChatState> = (action$, store) =>
 
         const call$ = speakObservable(action.ssml, action.locale, onSpeakingStarted);
         return call$.map(onSpeakingFinished)
-            .catch(error => Observable.of(nullAction));
+            .catch((error: any) => Observable.of(nullAction));
     })
-    .merge(action$.ofType('Speak_SSML').map(_ => ({ type: 'Listening_Stopping' } as ShellAction)));
+    .merge(action$.ofType('Speak_SSML').map((_: any) => ({ type: 'Listening_Stopping' } as ShellAction)));
 
-const speakOnMessageReceivedEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const speakOnMessageReceivedEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Receive_Message')
-    .filter(action => (action.activity as Message) && store.getState().shell.lastInputViaSpeech)
-    .map(action => speakFromMsg(action.activity as Message, store.getState().format.locale) as ShellAction);
+    .filter((action: any) => (action.activity as Message) && store.getState().shell.lastInputViaSpeech)
+    .map((action: any) => speakFromMsg(action.activity as Message, store.getState().format.locale) as ShellAction);
 
-const stopSpeakingEpic: Epic<ChatActions, ChatState> = action$ =>
+const stopSpeakingEpic: Epic<ChatActions, ChatState> = (action$: any) =>
     action$.ofType(
         'Update_Input',
         'Listening_Starting',
@@ -617,9 +617,9 @@ const stopSpeakingEpic: Epic<ChatActions, ChatState> = action$ =>
         'Stop_Speaking'
     )
     .do(Speech.SpeechSynthesizer.stopSpeaking)
-    .map(_ => nullAction);
+    .map((_: any) => nullAction);
 
-const stopListeningEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const stopListeningEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType(
         'Listening_Stopping',
         'Card_Action_Clicked'
@@ -629,9 +629,9 @@ const stopListeningEpic: Epic<ChatActions, ChatState> = (action$, store) =>
 
         store.dispatch({ type: 'Listening_Stop' });
     })
-    .map(_ => nullAction);
+    .map((_: any) => nullAction);
 
-const startListeningEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const startListeningEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Listening_Starting')
     .do(async (action: ShellAction) => {
         const { history: { activities }, format: { locale } } = store.getState();
@@ -657,29 +657,29 @@ const startListeningEpic: Epic<ChatActions, ChatState> = (action$, store) =>
             onRecognitionFailed
         );
     })
-    .map(_ => nullAction);
+    .map((_: any) => nullAction);
 
-const listeningSilenceTimeoutEpic: Epic<ChatActions, ChatState> = (action$, store) => {
+const listeningSilenceTimeoutEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) => {
     const cancelMessages$ = action$.ofType('Update_Input', 'Listening_Stopping');
     return action$.ofType('Listening_Start')
-        .mergeMap(action =>
+        .mergeMap((action: any) =>
             Observable.of(({ type: 'Listening_Stopping' }) as ShellAction)
             .delay(5000)
             .takeUntil(cancelMessages$));
 };
 
-const retrySendMessageEpic: Epic<ChatActions, ChatState> = action$ =>
+const retrySendMessageEpic: Epic<ChatActions, ChatState> = (action$: any) =>
     action$.ofType('Send_Message_Retry')
-    .map(action => ({ type: 'Send_Message_Try', clientActivityId: action.clientActivityId } as HistoryAction));
+    .map((action: any) => ({ type: 'Send_Message_Try', clientActivityId: action.clientActivityId } as HistoryAction));
 
-const updateSelectedActivityEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const updateSelectedActivityEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType(
         'Send_Message_Succeed',
         'Send_Message_Fail',
         'Show_Typing',
         'Clear_Typing'
     )
-    .map(action => {
+    .map((action: any) => {
         const state = store.getState();
         if (state.connection.selectedActivity) {
             state.connection.selectedActivity.next({ activity: state.history.selectedActivity });
@@ -687,24 +687,24 @@ const updateSelectedActivityEpic: Epic<ChatActions, ChatState> = (action$, store
         return nullAction;
     });
 
-const showTypingEpic: Epic<ChatActions, ChatState> = action$ =>
+const showTypingEpic: Epic<ChatActions, ChatState> = (action$: any) =>
     action$.ofType('Show_Typing')
     .delay(3000)
-    .map(action => ({ type: 'Clear_Typing', id: action.activity.id } as HistoryAction));
+    .map((action: any) => ({ type: 'Clear_Typing', id: action.activity.id } as HistoryAction));
 
-const sendTypingEpic: Epic<ChatActions, ChatState> = (action$, store) =>
+const sendTypingEpic: Epic<ChatActions, ChatState> = (action$: any, store: any) =>
     action$.ofType('Update_Input')
-    .map(_ => store.getState())
-    .filter(state => state.shell.sendTyping)
+    .map((_: any) => store.getState())
+    .filter((state: any) => state.shell.sendTyping)
     .throttleTime(3000)
-    .do(_ => konsole.log('sending typing'))
-    .flatMap(state =>
+    .do((_: any) => konsole.log('sending typing'))
+    .flatMap((state: any) =>
         state.connection.botConnection.postActivity({
             type: 'typing',
             from: state.connection.user
         })
-        .map(_ => nullAction)
-        .catch(error => Observable.of(nullAction))
+        .map((_: any) => nullAction)
+        .catch((error: any) => Observable.of(nullAction))
     );
 
 // Now we put it all together into a store with middleware

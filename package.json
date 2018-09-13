@@ -1,7 +1,7 @@
 {
-  "name": "botframework-webchat",
-  "version": "0.14.3-0",
-  "description": "Embeddable web chat control for the Microsoft Bot Framework",
+  "name": "botframework-webchat-cris",
+  "version": "0.14.4-0",
+  "description": "Embeddable web chat control for the Microsoft Bot Framework (using CRIS endpoint for speech)",
   "main": "built/BotChat.js",
   "types": "built/BotChat.d.ts",
   "scripts": {
@@ -26,18 +26,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://git@github.com/Microsoft/BotFramework-WebChat.git"
+    "url": "git@github.com:phongcao/BotFramework-WebChat.git"
   },
   "author": "Microsoft Corp",
   "license": "MIT",
   "dependencies": {
     "adaptivecards": "1.0.0",
-    "bluebird": "^3.5.1",
+    "bluebird": "3.5.2",
     "botframework-directlinejs": "0.9.16",
     "core-js": "2.4.1",
     "jspeech": "^0.1.1",
     "markdown-it": "8.3.1",
-    "microsoft-speech-browser-sdk": "0.0.12",
+    "microsoft-speech-browser-sdk-cris": "0.0.15",
     "react": "15.6.1",
     "react-dom": "15.6.1",
     "react-redux": "5.0.5",
@@ -48,7 +48,7 @@
     "tslib": "1.7.1"
   },
   "devDependencies": {
-    "@types/bluebird": "^3.5.21",
+    "@types/bluebird": "3.5.2",
     "@types/markdown-it": "0.0.2",
     "@types/react": "15.6.1",
     "@types/react-dom": "15.5.7",
@@ -67,7 +67,7 @@
     "source-map-loader": "0.2.1",
     "tslint": "5.10.0",
     "tslint-loader": "3.6.0",
-    "typescript": "2.3",
+    "typescript": "3.0.3",
     "webpack": "2.3.3"
   },
   "files": [
