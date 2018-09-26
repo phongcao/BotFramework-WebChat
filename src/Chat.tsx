@@ -29,6 +29,7 @@ export interface ChatProps {
     showUploadButton?: boolean;
     speechOptions?: SpeechOptions;
     user: User;
+    botActivityListener?: (activity: any) => void;
 }
 
 import { History } from './History';
@@ -49,6 +50,8 @@ export class Chat extends React.Component<ChatProps, {}> {
     private chatviewPanelRef: HTMLElement;
 
     private resizeListener = () => this.setSize();
+
+    private botActivityListener: (activity: any) => void;
 
     // tslint:disable:variable-name
     private _handleCardAction = this.handleCardAction.bind(this);
@@ -193,6 +196,10 @@ export class Chat extends React.Component<ChatProps, {}> {
             ? (this.botConnection = new DirectLine(this.props.directLine))
             : this.props.botConnection
             ;
+
+        if (this.props.botActivityListener !== undefined) {
+            botConnection.activity$.subscribe(this.props.botActivityListener);
+        }
 
         if (this.props.resize === 'window') {
             window.addEventListener('resize', this.resizeListener);
