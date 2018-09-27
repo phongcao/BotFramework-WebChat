@@ -1,6 +1,6 @@
 {
   "name": "botframework-webchat-anderm",
-  "version": "0.14.4-0",
+  "version": "0.14.5-0",
   "description": "Embeddable web chat control for the Microsoft Bot Framework (using CRIS endpoint for speech)",
   "main": "built/BotChat.js",
   "types": "built/BotChat.d.ts",

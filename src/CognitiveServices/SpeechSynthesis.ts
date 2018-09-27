@@ -76,6 +76,15 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                 onSpeakingFinished
             }
         );
+
+        const latest = this._requestQueue[this._requestQueue.length - 1];
+        if (this._localAudioMap && this._localAudioMap[latest.text]) {
+            latest.wavFileLocation = this._localAudioMap[latest.text];
+            latest.isReadyToPlay = true;
+            this.playAudio();
+            return;
+        }
+
         this.getSpeechData().then(() => {
             this.playAudio();
         });
@@ -115,7 +124,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
 
             if (top.wavFileLocation) {
                 if (!this._localAudioPlayer) {
-                    this._localAudioPlayer = new HTMLAudioElement();
+                    this._localAudioPlayer = new Audio();
                 }
 
                 this._localAudioPlayer.src = top.wavFileLocation;
@@ -172,12 +181,6 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             return;
         }
         const latest = this._requestQueue[this._requestQueue.length - 1];
-        if (this._localAudioMap && this._localAudioMap[latest.text]) {
-            latest.wavFileLocation = this._localAudioMap[latest.text];
-            latest.isReadyToPlay = true;
-            return;
-        }
-
         return this._helper.fetchSpeechData(latest.text, latest.locale, this._properties).then(result => {
             latest.data = result;
             latest.isReadyToPlay = true;
