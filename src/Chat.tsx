@@ -22,6 +22,7 @@ export interface ChatProps {
     directLine?: DirectLineOptions;
     disabled?: boolean;
     formatOptions?: FormatOptions;
+    localAudioMap?: { [key: string]: string };
     locale?: string;
     resize?: 'none' | 'window' | 'detect';
     selectedActivity?: BehaviorSubject<ActivityOrID>;

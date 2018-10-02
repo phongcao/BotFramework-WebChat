@@ -7,6 +7,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     voiceName?: string;
     onSpeakingStarted?: Action;
     onSpeakingFinished?: Action;
+    localAudioMap?: { [key: string]: string };
     fetchCallback?: (authFetchEventId: string) => Promise<string>;
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
 }
@@ -18,6 +19,7 @@ interface SpeakRequest {
     data: ArrayBuffer;
     text: string;
     locale: string;
+    wavFileLocation: string;
     onSpeakingStarted: Action;
     onSpeakingFinished: Action;
 }
@@ -42,11 +44,13 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     // tslint:disable:variable-name
     private _requestQueue: SpeakRequest[] = null;
     private _isPlaying: boolean = false;
+    private _localAudioPlayer: HTMLAudioElement;
     private _audioElement: AudioContext;
     private _helper: CognitiveServicesHelper;
     private _properties: ICognitiveServicesSpeechSynthesisProperties;
     private _onSpeakingStarted: Action;
     private _onSpeakingFinished: Action;
+    private _localAudioMap?: { [key: string]: string };
     // tslint:enable:variable-name
 
     constructor(properties: ICognitiveServicesSpeechSynthesisProperties) {
@@ -55,6 +59,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._requestQueue = new Array();
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
+        this._localAudioMap = properties.localAudioMap;
     }
 
     public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished): void => {
@@ -64,12 +69,22 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             {
                 isReadyToPlay: false,
                 data: null,
+                wavFileLocation: null,
                 text,
                 locale: lang,
                 onSpeakingStarted,
                 onSpeakingFinished
             }
         );
+
+        const latest = this._requestQueue[this._requestQueue.length - 1];
+        if (this._localAudioMap && this._localAudioMap[latest.text]) {
+            latest.wavFileLocation = this._localAudioMap[latest.text];
+            latest.isReadyToPlay = true;
+            this.playAudio();
+            return;
+        }
+
         this.getSpeechData().then(() => {
             this.playAudio();
         });
@@ -106,6 +121,32 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                     this._audioElement = new AudioContext();
                 }
             }
+
+            if (top.wavFileLocation) {
+                if (!this._localAudioPlayer) {
+                    this._localAudioPlayer = new Audio();
+                }
+
+                this._localAudioPlayer.src = top.wavFileLocation;
+                this._localAudioPlayer.play();
+                if (top.onSpeakingStarted) {
+                    top.onSpeakingStarted();
+                }
+
+                this._localAudioPlayer.onended = () => {
+                    this._isPlaying = false;
+                    if (top.onSpeakingFinished) {
+                        top.onSpeakingFinished();
+                    }
+                    this._requestQueue = this._requestQueue.slice(1, this._requestQueue.length);
+                    if (this._requestQueue.length > 0) {
+                        this.playAudio();
+                    }
+                };
+
+                return;
+            }
+
             this._audioElement.decodeAudioData(top.data, buffer => {
                 const source = this._audioElement.createBufferSource();
                 source.buffer = buffer;
