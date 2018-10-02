@@ -30,6 +30,8 @@ export interface ChatProps {
     showUploadButton?: boolean;
     speechOptions?: SpeechOptions;
     user: User;
+    botActivityListener?: (activity: any) => void;
+    debugMode?: boolean;
 }
 
 import { History } from './History';
@@ -50,6 +52,8 @@ export class Chat extends React.Component<ChatProps, {}> {
     private chatviewPanelRef: HTMLElement;
 
     private resizeListener = () => this.setSize();
+
+    private botActivityListener: (activity: any) => void;
 
     // tslint:disable:variable-name
     private _handleCardAction = this.handleCardAction.bind(this);
@@ -195,6 +199,20 @@ export class Chat extends React.Component<ChatProps, {}> {
             : this.props.botConnection
             ;
 
+        if (this.props.botActivityListener !== undefined) {
+            botConnection.activity$.subscribe(this.props.botActivityListener);
+
+            // Phong Cao: this is a hack to enable debug event, which is completely app specific.
+            if (this.props.debugMode === true) {
+                botConnection.postActivity({
+                    from: { id: 'me' },
+                    name: 'debugModeEvent',
+                    type: 'event',
+                    value: ''
+                }).subscribe((id: any) => { console.log('debug'); });
+            }
+        }
+
         if (this.props.resize === 'window') {
             window.addEventListener('resize', this.resizeListener);
         }
@@ -202,14 +220,14 @@ export class Chat extends React.Component<ChatProps, {}> {
         this.store.dispatch<ChatActions>({ type: 'Start_Connection', user: this.props.user, bot: this.props.bot, botConnection, selectedActivity: this.props.selectedActivity });
 
         this.connectionStatusSubscription = botConnection.connectionStatus$.subscribe(connectionStatus => {
-                if (this.props.speechOptions && this.props.speechOptions.speechRecognizer) {
-                    const refGrammarId = botConnection.referenceGrammarId;
-                    if (refGrammarId) {
-                        this.props.speechOptions.speechRecognizer.referenceGrammarId = refGrammarId;
-                    }
+            if (this.props.speechOptions && this.props.speechOptions.speechRecognizer) {
+                const refGrammarId = botConnection.referenceGrammarId;
+                if (refGrammarId) {
+                    this.props.speechOptions.speechRecognizer.referenceGrammarId = refGrammarId;
                 }
-                this.store.dispatch<ChatActions>({ type: 'Connection_Change', connectionStatus });
             }
+            this.store.dispatch<ChatActions>({ type: 'Connection_Change', connectionStatus });
+        }
         );
 
         this.activitySubscription = botConnection.activity$.subscribe(
@@ -273,31 +291,31 @@ export class Chat extends React.Component<ChatProps, {}> {
 
         // only render real stuff after we know our dimensions
         return (
-            <Provider store={ this.store }>
+            <Provider store={this.store}>
                 <div
                     className="wc-chatview-panel"
-                    onKeyDownCapture={ this._handleKeyDownCapture }
-                    ref={ this._saveChatviewPanelRef }
+                    onKeyDownCapture={this._handleKeyDownCapture}
+                    ref={this._saveChatviewPanelRef}
                 >
                     {
                         !!state.format.chatTitle &&
-                            <div className="wc-header">
-                                <span>{ typeof state.format.chatTitle === 'string' ? state.format.chatTitle : state.format.strings.title }</span>
-                            </div>
+                        <div className="wc-header">
+                            <span>{typeof state.format.chatTitle === 'string' ? state.format.chatTitle : state.format.strings.title}</span>
+                        </div>
                     }
-                    <MessagePane disabled={ this.props.disabled }>
+                    <MessagePane disabled={this.props.disabled}>
                         <History
-                            disabled={ this.props.disabled }
-                            onCardAction={ this._handleCardAction }
-                            ref={ this._saveHistoryRef }
+                            disabled={this.props.disabled}
+                            onCardAction={this._handleCardAction}
+                            ref={this._saveHistoryRef}
                         />
                     </MessagePane>
                     {
-                        !this.props.disabled && <Shell ref={ this._saveShellRef } />
+                        !this.props.disabled && <Shell ref={this._saveShellRef} />
                     }
                     {
                         this.props.resize === 'detect' &&
-                            <ResizeDetector onresize={ this.resizeListener } />
+                        <ResizeDetector onresize={this.resizeListener} />
                     }
                 </div>
             </Provider>
@@ -316,46 +334,46 @@ export const doCardAction = (
     type,
     actionValue
 ) => {
-    const text = (typeof actionValue === 'string') ? actionValue as string : undefined;
-    const value = (typeof actionValue === 'object') ? actionValue as object : undefined;
+        const text = (typeof actionValue === 'string') ? actionValue as string : undefined;
+        const value = (typeof actionValue === 'object') ? actionValue as object : undefined;
 
-    switch (type) {
-        case 'imBack':
-            if (typeof text === 'string') {
-                sendMessage(text, from, locale);
-            }
-            break;
+        switch (type) {
+            case 'imBack':
+                if (typeof text === 'string') {
+                    sendMessage(text, from, locale);
+                }
+                break;
 
-        case 'postBack':
-            sendPostBack(botConnection, text, value, from, locale);
-            break;
+            case 'postBack':
+                sendPostBack(botConnection, text, value, from, locale);
+                break;
 
-        case 'call':
-        case 'openUrl':
-        case 'playAudio':
-        case 'playVideo':
-        case 'showImage':
-        case 'downloadFile':
-            window.open(text);
-            break;
-        case 'signin':
-            const loginWindow = window.open();
-            if (botConnection.getSessionId)  {
-                botConnection.getSessionId().subscribe(sessionId => {
-                    konsole.log('received sessionId: ' + sessionId);
-                    loginWindow.location.href = text + encodeURIComponent('&code_challenge=' + sessionId);
-                }, error => {
-                    konsole.log('failed to get sessionId', error);
-                });
-            } else {
-                loginWindow.location.href = text;
-            }
-            break;
+            case 'call':
+            case 'openUrl':
+            case 'playAudio':
+            case 'playVideo':
+            case 'showImage':
+            case 'downloadFile':
+                window.open(text);
+                break;
+            case 'signin':
+                const loginWindow = window.open();
+                if (botConnection.getSessionId) {
+                    botConnection.getSessionId().subscribe(sessionId => {
+                        konsole.log('received sessionId: ' + sessionId);
+                        loginWindow.location.href = text + encodeURIComponent('&code_challenge=' + sessionId);
+                    }, error => {
+                        konsole.log('failed to get sessionId', error);
+                    });
+                } else {
+                    loginWindow.location.href = text;
+                }
+                break;
 
-        default:
-            konsole.log('unknown button type', type);
+            default:
+                konsole.log('unknown button type', type);
         }
-};
+    };
 
 export const sendPostBack = (botConnection: IBotConnection, text: string, value: object, from: User, locale: string) => {
     botConnection.postActivity({
@@ -365,13 +383,13 @@ export const sendPostBack = (botConnection: IBotConnection, text: string, value:
         from,
         locale
     })
-    .subscribe(
-        id => konsole.log('success sending postBack', id),
-        error => konsole.log('failed to send postBack', error)
-    );
+        .subscribe(
+            id => konsole.log('success sending postBack', id),
+            error => konsole.log('failed to send postBack', error)
+        );
 };
 
-export const renderIfNonempty = (value: any, renderer: (value: any) => JSX.Element ) => {
+export const renderIfNonempty = (value: any, renderer: (value: any) => JSX.Element) => {
     if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 0)) {
         return renderer(value);
     }
@@ -399,11 +417,11 @@ const ResizeDetector = (props: {
             visibility: 'hidden',
             width: '100%'
         }}
-        ref={ frame => {
+        ref={frame => {
             if (frame) {
                 frame.contentWindow.onresize = props.onresize;
             }
-        } }
+        }}
     />;
 
 // For auto-focus in some browsers, we synthetically insert keys into the chatbox.
