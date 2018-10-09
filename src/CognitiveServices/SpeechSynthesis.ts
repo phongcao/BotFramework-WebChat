@@ -8,6 +8,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     onSpeakingStarted?: Action;
     onSpeakingFinished?: Action;
     localAudioMap?: { [key: string]: string };
+    phonemeReplacementMap?: Map<string, string>;
     fetchCallback?: (authFetchEventId: string) => Promise<string>;
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
 }
@@ -51,6 +52,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     private _onSpeakingStarted: Action;
     private _onSpeakingFinished: Action;
     private _localAudioMap?: { [key: string]: string };
+    private _phonemeReplacementMap?: Map<string, string>;
     // tslint:enable:variable-name
 
     constructor(properties: ICognitiveServicesSpeechSynthesisProperties) {
@@ -59,7 +61,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._requestQueue = new Array();
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
-        this._localAudioMap = properties.localAudioMap;
+        this._phonemeReplacementMap = properties.phonemeReplacementMap;
     }
 
     public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished): void => {
@@ -83,6 +85,9 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             latest.isReadyToPlay = true;
             this.playAudio();
             return;
+        } else if (this._phonemeReplacementMap) {
+            // Replaces phonemes if it needs to, otherwise it returns the same text
+            latest.text = this.replacePhonemes(latest.text); // TEST
         }
 
         this.getSpeechData().then(() => {
@@ -174,6 +179,24 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                 }
             });
         }
+    }
+
+    private replacePhonemes = (message: string) => {
+        const prefix = `<speak version='1.0' xmlns="http://www.w3.org/2001/10/synthesis" xml:lang='en-US'><voice  name='Microsoft Server Speech Text to Speech Voice (en-US, Jessa24kRUS)'>`;
+        const suffix = `</voice> </speak>`;
+        let replaced = false;
+        message = message.toLocaleLowerCase();
+        this._phonemeReplacementMap.forEach((value, key) => {
+            if (message.includes(key)) {
+                // Replaces all occurences of a string
+                message = message.replace(new RegExp(key, 'g'), value);
+                replaced = true;
+            }
+        });
+        if (replaced) {
+            message = `${prefix}${message}${suffix}`;
+        }
+        return message;
     }
 
     private getSpeechData(): Promise<any> {
