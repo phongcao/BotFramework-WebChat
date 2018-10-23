@@ -165,7 +165,13 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
                         if (this.onRecognitionFailed) {
                             this.onRecognitionFailed();
                         }
-                        this.log('Recognition Status: ' + simplePhraseEvent.Result.RecognitionStatus.toString());
+
+                        // Return an empty string to continue the conversation
+                        if (this.onFinalResult) {
+                            this.onFinalResult('?');
+                        }
+
+                        this.log('Recognition Status: ' + detailedPhraseEvent.Result.RecognitionStatus.toString());
                     }
                     break;
                 case 'RecognitionEndedEvent':
