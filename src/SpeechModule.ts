@@ -55,6 +55,7 @@ export namespace Speech {
     }
 
     export interface ISpeechSynthesizer {
+        cacheString(text: string): void;
         speak(text: string, lang: string, onSpeakingStarted: Action, onspeakingFinished: Action): void;
         stopSpeaking(): void;
     }
@@ -127,6 +128,14 @@ export namespace Speech {
 
         public static setSpeechSynthesizer(speechSynthesizer: ISpeechSynthesizer) {
             SpeechSynthesizer.instance = speechSynthesizer;
+        }
+
+        public static cacheString(text: string) {
+            if (SpeechSynthesizer.instance == null) {
+                return;
+            }
+
+            SpeechSynthesizer.instance.cacheString(text);
         }
 
         public static speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null) {
@@ -258,6 +267,11 @@ export namespace Speech {
         private lastOperation: SpeechSynthesisUtterance = null;
         private audioElement: HTMLAudioElement = null;
         private speakRequests: SpeakRequest[] = [];
+
+        public cacheString(text: string) {
+            // Out of scope for BrowserTTS
+            return;
+        }
 
         public speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null) {
             if (!('SpeechSynthesisUtterance' in window) || !text) {
