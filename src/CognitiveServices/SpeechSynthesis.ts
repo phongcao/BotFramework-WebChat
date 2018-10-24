@@ -44,6 +44,7 @@ declare var webkitAudioContext: {
 export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     // tslint:disable:variable-name
     private _requestQueue: SpeakRequest[] = null;
+    private _localAudioCacheMap: Map<string, ArrayBuffer>;
     private _isPlaying: boolean = false;
     private _localAudioPlayer: HTMLAudioElement;
     private _audioElement: AudioContext;
@@ -59,9 +60,20 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._helper = new CognitiveServicesHelper(properties);
         this._properties = properties;
         this._requestQueue = new Array();
+        this._localAudioCacheMap = new Map<string, ArrayBuffer>();
+        this._localAudioMap = properties.localAudioMap;
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
         this._phonemeReplacementMap = properties.phonemeReplacementMap;
+    }
+
+    public cacheString = (text: string): void => {
+        if (this._phonemeReplacementMap) {
+            // Replaces phonemes if it needs to, otherwise it returns the same text
+            text = this.replacePhonemes(text);
+        }
+
+        this.cacheSpeechData(text);
     }
 
     public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished): void => {
@@ -87,12 +99,18 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             return;
         } else if (this._phonemeReplacementMap) {
             // Replaces phonemes if it needs to, otherwise it returns the same text
-            latest.text = this.replacePhonemes(latest.text); // TEST
+            latest.text = this.replacePhonemes(latest.text);
         }
 
-        this.getSpeechData().then(() => {
+        if (this._localAudioCacheMap && this._localAudioCacheMap.has(latest.text)) {
+            latest.data = this._localAudioCacheMap.get(latest.text);
+            latest.isReadyToPlay = true;
             this.playAudio();
-        });
+        } else {
+            this.getSpeechData().then(() => {
+                this.playAudio();
+            });
+        }
     }
 
     stopSpeaking(): void {
@@ -197,6 +215,18 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             message = `${prefix}${message}${suffix}`;
         }
         return message;
+    }
+
+    private cacheSpeechData = (text: string) => {
+        if (text.length === 0) {
+            return;
+        }
+        this._helper.fetchSpeechData(text, 'en-US', this._properties).then(result => {
+            this._localAudioCacheMap.set(text, result);
+        }, ex => {
+            // Failed to get the speech data, ignore this caching
+            this.log(ex);
+        });
     }
 
     private getSpeechData(): Promise<any> {
