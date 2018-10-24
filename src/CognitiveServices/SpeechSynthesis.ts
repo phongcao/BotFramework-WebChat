@@ -9,6 +9,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     onSpeakingFinished?: Action;
     localAudioMap?: { [key: string]: string };
     phonemeReplacementMap?: Map<string, string>;
+    localAudioCacheLimit?: number;
     fetchCallback?: (authFetchEventId: string) => Promise<string>;
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
 }
@@ -54,6 +55,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     private _onSpeakingFinished: Action;
     private _localAudioMap?: { [key: string]: string };
     private _phonemeReplacementMap?: Map<string, string>;
+    private _localAudioCacheLimit: number;
     // tslint:enable:variable-name
 
     constructor(properties: ICognitiveServicesSpeechSynthesisProperties) {
@@ -65,6 +67,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
         this._phonemeReplacementMap = properties.phonemeReplacementMap;
+        this._localAudioCacheLimit = properties.localAudioCacheLimit || 1000;
     }
 
     public cacheString = (text: string): void => {
@@ -80,6 +83,11 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         if (this._localAudioCacheMap && this._localAudioCacheMap.has(text)) {
             // This text is already cached
             return;
+        }
+
+        if (this._localAudioCacheMap.size > this._localAudioCacheLimit) {
+            // Clear previous cache when we are over the limit
+            this._localAudioCacheMap.clear();
         }
 
         this.cacheSpeechData(text);
