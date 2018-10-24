@@ -80,7 +80,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
             text = this.replacePhonemes(text);
         }
 
-        if (this._localAudioCacheMap && this._localAudioCacheMap.has(text)) {
+        if (this._localAudioCacheMap.has(text)) {
             // This text is already cached
             return;
         }
