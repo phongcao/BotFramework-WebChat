@@ -68,9 +68,18 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     }
 
     public cacheString = (text: string): void => {
+        if (text.length === 0) {
+            return;
+        }
+
         if (this._phonemeReplacementMap) {
             // Replaces phonemes if it needs to, otherwise it returns the same text
             text = this.replacePhonemes(text);
+        }
+
+        if (this._localAudioCacheMap && this._localAudioCacheMap.has(text)) {
+            // This text is already cached
+            return;
         }
 
         this.cacheSpeechData(text);
@@ -218,9 +227,6 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     }
 
     private cacheSpeechData = (text: string) => {
-        if (text.length === 0) {
-            return;
-        }
         this._helper.fetchSpeechData(text, 'en-US', this._properties).then(result => {
             this._localAudioCacheMap.set(text, result);
         }, ex => {
