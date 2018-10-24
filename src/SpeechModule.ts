@@ -1,6 +1,8 @@
 import jspeech from 'jspeech';
 
+export enum StartedSpeakingMode { WavFile, LocalCache, BingSpeech }
 export type Action = () => void;
+export type OnSpeakingStartedMode = (startedMode: StartedSpeakingMode) => void;
 
 export type Func<T, TResult> = (item: T) => TResult;
 
@@ -56,7 +58,7 @@ export namespace Speech {
 
     export interface ISpeechSynthesizer {
         cacheString(text: string): void;
-        speak(text: string, lang: string, onSpeakingStarted: Action, onspeakingFinished: Action): void;
+        speak(text: string, lang: string, onSpeakingStarted: Action, onspeakingFinished: Action, onSpeakingStartedMode: OnSpeakingStartedMode): void;
         stopSpeaking(): void;
     }
 
@@ -138,12 +140,12 @@ export namespace Speech {
             SpeechSynthesizer.instance.cacheString(text);
         }
 
-        public static speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null) {
+        public static speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null, onSpeakingStartedMode: OnSpeakingStartedMode = null) {
             if (SpeechSynthesizer.instance == null) {
                 return;
             }
 
-            SpeechSynthesizer.instance.speak(text, lang, onSpeakingStarted, onSpeakingFinished);
+            SpeechSynthesizer.instance.speak(text, lang, onSpeakingStarted, onSpeakingFinished, onSpeakingStartedMode);
         }
 
         public static stopSpeaking() {

@@ -1,5 +1,5 @@
 import * as konsole from '../Konsole';
-import { Action, Speech } from '../SpeechModule';
+import { Action, OnSpeakingStartedMode, Speech, StartedSpeakingMode } from '../SpeechModule';
 
 export interface ICognitiveServicesSpeechSynthesisProperties {
     subscriptionKey?: string;
@@ -7,6 +7,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     voiceName?: string;
     onSpeakingStarted?: Action;
     onSpeakingFinished?: Action;
+    onSpeakingStartedMode?: OnSpeakingStartedMode;
     localAudioMap?: { [key: string]: string };
     phonemeReplacementMap?: Map<string, string>;
     localAudioCacheLimit?: number;
@@ -22,8 +23,10 @@ interface SpeakRequest {
     text: string;
     locale: string;
     wavFileLocation: string;
+    localCache: boolean;
     onSpeakingStarted: Action;
     onSpeakingFinished: Action;
+    onSpeakingStartedMode: OnSpeakingStartedMode;
 }
 
 interface HttpHeader {
@@ -53,6 +56,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     private _properties: ICognitiveServicesSpeechSynthesisProperties;
     private _onSpeakingStarted: Action;
     private _onSpeakingFinished: Action;
+    private _onSpeakingStartedMode: OnSpeakingStartedMode;
     private _localAudioMap?: { [key: string]: string };
     private _phonemeReplacementMap?: Map<string, string>;
     private _localAudioCacheLimit: number;
@@ -66,6 +70,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._localAudioMap = properties.localAudioMap;
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
+        this._onSpeakingStartedMode = properties.onSpeakingStartedMode;
         this._phonemeReplacementMap = properties.phonemeReplacementMap;
         this._localAudioCacheLimit = properties.localAudioCacheLimit || 1000;
     }
@@ -93,18 +98,21 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this.cacheSpeechData(text);
     }
 
-    public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished): void => {
+    public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished, onSpeakingStartedMode: OnSpeakingStartedMode = this._onSpeakingStartedMode): void => {
         onSpeakingStarted = this._onSpeakingStarted;
         onSpeakingFinished = this._onSpeakingFinished;
+        onSpeakingStartedMode = this._onSpeakingStartedMode;
         this._requestQueue.push(
             {
                 isReadyToPlay: false,
                 data: null,
                 wavFileLocation: null,
                 text,
+                localCache: false,
                 locale: lang,
                 onSpeakingStarted,
-                onSpeakingFinished
+                onSpeakingFinished,
+                onSpeakingStartedMode
             }
         );
 
@@ -121,6 +129,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
 
         if (this._localAudioCacheMap && this._localAudioCacheMap.has(latest.text)) {
             latest.data = this._localAudioCacheMap.get(latest.text);
+            latest.localCache = true;
             latest.isReadyToPlay = true;
             this.playAudio();
         } else {
@@ -173,6 +182,10 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                     top.onSpeakingStarted();
                 }
 
+                if (top.onSpeakingStartedMode) {
+                    top.onSpeakingStartedMode(StartedSpeakingMode.WavFile);
+                }
+
                 this._localAudioPlayer.onended = () => {
                     this._isPlaying = false;
                     if (top.onSpeakingFinished) {
@@ -193,6 +206,9 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                 source.connect(this._audioElement.destination);
                 if (top.onSpeakingStarted) {
                     top.onSpeakingStarted();
+                }
+                if (top.onSpeakingStartedMode) {
+                    top.onSpeakingStartedMode(top.localCache ? StartedSpeakingMode.LocalCache : StartedSpeakingMode.BingSpeech);
                 }
                 source.start(0);
                 source.onended = event => {
