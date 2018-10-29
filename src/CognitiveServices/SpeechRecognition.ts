@@ -20,6 +20,7 @@ export interface ICognitiveServicesSpeechRecognizerProperties {
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
     resultForm?: string;
     cid?: string;
+    recognitionEventListener?: (status: string, result?: string) => void;
 }
 
 export class SpeechRecognizer implements Speech.ISpeechRecognizer {
@@ -35,6 +36,7 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
     private actualRecognizer: any = null;
     private grammars: string[] = null;
     private properties: ICognitiveServicesSpeechRecognizerProperties;
+    private recognitionEventListener: (status: string, result?: string) => void = null;
 
     constructor(properties: ICognitiveServicesSpeechRecognizerProperties = {}) {
         this.properties = properties;
@@ -90,6 +92,10 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
         } else {
             console.error('This browser does not support speech recognition');
         }
+
+        if (properties.recognitionEventListener) {
+            this.recognitionEventListener = properties.recognitionEventListener;
+        }
     }
 
     // tslint:disable-next-line:no-empty
@@ -144,21 +150,29 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
                     const detailedPhraseEvent = event as CognitiveSpeech.SpeechDetailedPhraseEvent;
                     if (CognitiveSpeech.RecognitionStatus[detailedPhraseEvent.Result.RecognitionStatus] as any === CognitiveSpeech.RecognitionStatus.Success) {
                         if (this.onFinalResult) {
+                            let result: string = null;
                             switch (this.properties.resultForm) {
                                 case 'Display':
-                                    this.onFinalResult(detailedPhraseEvent.Result.NBest[0].Display);
+                                    result = detailedPhraseEvent.Result.NBest[0].Display;
                                     break;
                                 case 'ITN':
-                                    this.onFinalResult(detailedPhraseEvent.Result.NBest[0].ITN);
+                                    result = detailedPhraseEvent.Result.NBest[0].ITN;
                                     break;
                                 case 'Lexical':
-                                    this.onFinalResult(detailedPhraseEvent.Result.NBest[0].Lexical);
+                                    result = detailedPhraseEvent.Result.NBest[0].Lexical;
                                     break;
                                 case 'MaskedITN':
-                                    this.onFinalResult(detailedPhraseEvent.Result.NBest[0].MaskedITN);
+                                    result = detailedPhraseEvent.Result.NBest[0].MaskedITN;
                                     break;
                                 default:
                                     throw new Error(`Error: ${this.properties.resultForm} is not a valid resultForm. Valid forms are 'Display', 'ITN', 'Lexical' and 'MaskedITN'`);
+                            }
+
+                            if (result) {
+                                this.onFinalResult(result);
+                                if (this.recognitionEventListener) {
+                                    this.recognitionEventListener('Success', result);
+                                }
                             }
                         }
                     } else {
@@ -166,9 +180,8 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
                             this.onRecognitionFailed();
                         }
 
-                        // Return an empty string to continue the conversation
-                        if (this.onFinalResult) {
-                            this.onFinalResult('?');
+                        if (this.recognitionEventListener) {
+                            this.recognitionEventListener(detailedPhraseEvent.Result.RecognitionStatus.toString());
                         }
 
                         this.log('Recognition Status: ' + detailedPhraseEvent.Result.RecognitionStatus.toString());
