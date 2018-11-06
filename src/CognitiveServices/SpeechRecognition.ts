@@ -20,6 +20,7 @@ export interface ICognitiveServicesSpeechRecognizerProperties {
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
     resultForm?: string;
     cid?: string;
+    region?: string;
     recognitionEventListener?: (status: string, result?: string) => void;
 }
 
@@ -55,7 +56,8 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
             recognitionMode,        // Speech.RecognitionMode.Interactive  (Options - Interactive/Conversation/Dictation>)
             locale,                 // Supported laguages are specific to each recognition mode. Refer to docs.
             format,
-            properties.cid          // Cris endpoint id
+            properties.cid,         // Cris endpoint id
+            properties.region       // Speech region
         );
 
         let authentication;

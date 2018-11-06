@@ -1,6 +1,6 @@
 {
   "name": "botframework-webchat-cris",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Embeddable web chat control for the Microsoft Bot Framework (using CRIS endpoint for speech)",
   "main": "built/BotChat.js",
   "types": "built/BotChat.d.ts",
@@ -37,7 +37,7 @@
     "core-js": "2.4.1",
     "jspeech": "^0.1.1",
     "markdown-it": "8.3.1",
-    "microsoft-speech-browser-sdk-cris": "0.0.15",
+    "microsoft-speech-browser-sdk-cris": "0.0.16",
     "react": "15.6.1",
     "react-dom": "15.6.1",
     "react-redux": "5.0.5",

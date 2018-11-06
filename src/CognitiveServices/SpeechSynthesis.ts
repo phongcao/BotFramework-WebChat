@@ -10,6 +10,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     localAudioMap?: { [key: string]: string };
     phonemeReplacementMap?: Map<string, string>;
     localAudioCacheLimit?: number;
+    region?: string;
     fetchCallback?: (authFetchEventId: string) => Promise<string>;
     fetchOnExpiryCallback?: (authFetchEventId: string) => Promise<string>;
 }
@@ -56,6 +57,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     private _localAudioMap?: { [key: string]: string };
     private _phonemeReplacementMap?: Map<string, string>;
     private _localAudioCacheLimit: number;
+    private _region: string;
     // tslint:enable:variable-name
 
     constructor(properties: ICognitiveServicesSpeechSynthesisProperties) {
@@ -68,6 +70,7 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._onSpeakingFinished = properties.onSpeakingFinished;
         this._phonemeReplacementMap = properties.phonemeReplacementMap;
         this._localAudioCacheLimit = properties.localAudioCacheLimit || 1000;
+        this._region = properties.region || undefined;
     }
 
     public cacheString = (text: string): void => {
@@ -271,6 +274,7 @@ class CognitiveServicesHelper {
     private _tokenCallback: (id: string) => Promise<string>;
     private _tokenExpiredCallback: (id: string) => Promise<string>;
     private _lastTokenTime: number;
+    private _region: string;
     // tslint:enable:variable-name
 
     constructor(props: ICognitiveServicesSpeechSynthesisProperties) {
@@ -283,6 +287,8 @@ class CognitiveServicesHelper {
         } else {
             throw new Error('Error: The CognitiveServicesSpeechSynthesis requires either a subscriptionKey or a fetchCallback and a fetchOnExpiryCallback.');
         }
+
+        this._region = props.region;
     }
 
     public fetchSpeechData(text: string, locale: string, synthesisProperties: ICognitiveServicesSpeechSynthesisProperties): Promise<any> {
@@ -296,7 +302,7 @@ class CognitiveServicesHelper {
                 { name: 'Authorization', value: token }
             ];
 
-            return this.makeHttpCall('POST', this._synthesisURL, true, optionalHeaders, SSML);
+            return this.makeHttpCall('POST', this.getSynthesisURL(), true, optionalHeaders, SSML);
         };
 
         if (Date.now() - this._lastTokenTime > 500000) {
@@ -399,7 +405,7 @@ class CognitiveServicesHelper {
         const optionalHeaders: HttpHeader[] = [{ name: 'Ocp-Apim-Subscription-Key', value: apiKey },
         // required for Firefox otherwise a CORS error is raised
         { name: 'Access-Control-Allow-Origin', value: '*' }];
-        return this.makeHttpCall('POST', this._tokenURL, false, optionalHeaders).then(text => {
+        return this.makeHttpCall('POST', this.getTokenURL(), false, optionalHeaders).then(text => {
             konsole.log('New authentication token generated.');
             return Promise.resolve(text);
         }, ex => {
@@ -454,6 +460,22 @@ class CognitiveServicesHelper {
             voiceName = this._maleVoiceMap[localeLowerCase] || this._maleVoiceMap['en-us'];
         }
         return voiceName;
+    }
+
+    private getTokenURL(): string {
+        if (!this._region) {
+            return this._tokenURL;
+        }
+
+        return 'https://' + this._region + '.api.cognitive.microsoft.com/sts/v1.0/issueToken';
+    }
+
+    private getSynthesisURL(): string {
+        if (!this._region) {
+            return this._synthesisURL;
+        }
+
+        return 'https://' +  this._region + '.tts.speech.microsoft.com/cognitiveservices/v1';
     }
 
     // source: https://docs.microsoft.com/en-us/azure/cognitive-services/speech/api-reference-rest/bingvoiceoutput
