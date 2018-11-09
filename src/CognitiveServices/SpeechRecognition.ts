@@ -22,6 +22,7 @@ export interface ICognitiveServicesSpeechRecognizerProperties {
     cid?: string;
     region?: string;
     recognitionEventListener?: (status: string, result?: string) => void;
+    conversationMode?: boolean;
 }
 
 export class SpeechRecognizer implements Speech.ISpeechRecognizer {
@@ -33,6 +34,7 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
     public onRecognitionFailed: Action = null;
     public locale: string = null;
     public referenceGrammarId: string;
+    public conversationMode: boolean = false;
 
     private actualRecognizer: any = null;
     private grammars: string[] = null;
@@ -41,9 +43,15 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
 
     constructor(properties: ICognitiveServicesSpeechRecognizerProperties = {}) {
         this.properties = properties;
-        const recognitionMode = CognitiveSpeech.RecognitionMode.Interactive;
         const locale = properties.locale || 'en-US';
         const resultForm = properties.resultForm || 'ITN';
+
+        // Check if conversation mode is enabled.
+        if (properties.conversationMode && properties.conversationMode === true) {
+            this.conversationMode = true;
+        }
+
+        const recognitionMode = !this.conversationMode ? CognitiveSpeech.RecognitionMode.Interactive : CognitiveSpeech.RecognitionMode.Conversation;
 
         // Cognitive Speech's Simple mode returns ITN form. For any of the other forms (e.g. Lexical, MaskedITN), we need to use Detailed format.
         const format = resultForm === 'ITN' ? CognitiveSpeech.SpeechResultFormat.Simple : CognitiveSpeech.SpeechResultFormat.Detailed;
