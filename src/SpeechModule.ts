@@ -41,6 +41,7 @@ export namespace Speech {
         locale: string;
         isStreamingToService: boolean;
         referenceGrammarId: string; // unique identifier to send to the speech implementation to bias SR to this scenario
+        conversationMode?: boolean;
 
         onIntermediateResult: Func<string, void>;
         onFinalResult: Func<string, void>;
@@ -115,7 +116,11 @@ export namespace Speech {
         }
 
         public static speechIsAvailable() {
-            return SpeechRecognizer.instance != null && SpeechRecognizer.instance.speechIsAvailable() ;
+            return SpeechRecognizer.instance != null && SpeechRecognizer.instance.speechIsAvailable();
+        }
+
+        public static useConversationMode() {
+            return SpeechRecognizer.instance.conversationMode;
         }
 
         private static alreadyRecognizing() {
@@ -227,7 +232,7 @@ export namespace Speech {
             this.recognizer.start();
 
             // tslint:disable-next-line:no-empty
-            return waitEvent(this.recognizer, 'start').then(() => {});
+            return waitEvent(this.recognizer, 'start').then(() => { });
         }
 
         public stopRecognizing() {
@@ -235,7 +240,7 @@ export namespace Speech {
                 this.recognizer.stop();
 
                 // tslint:disable-next-line:no-empty
-                return waitEvent(this.recognizer, 'end').then(() => {});
+                return waitEvent(this.recognizer, 'end').then(() => { });
             } else {
                 return Promise.resolve();
             }

@@ -642,7 +642,12 @@ const startListeningEpic: Epic<ChatActions, ChatState> = (action$: any, store: a
         const onFinalResult = (srText: string) => {
             srText = srText.replace(/^[.\s]+|[.\s]+$/g, '');
             onIntermediateResult(srText);
-            store.dispatch({ type: 'Listening_Stopping' });
+
+            // Keep mic open in conversation mode.
+            if (!Speech.SpeechRecognizer.useConversationMode()) {
+                store.dispatch({ type: 'Listening_Stopping' });
+            }
+
             store.dispatch(sendMessage(srText, store.getState().connection.user, locale));
         };
         const onAudioStreamStart = () => { store.dispatch({ type: 'Listening_Start' }); };
