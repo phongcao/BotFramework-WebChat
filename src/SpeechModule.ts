@@ -57,7 +57,7 @@ export namespace Speech {
 
     export interface ISpeechSynthesizer {
         cacheString(text: string): void;
-        speak(text: string, lang: string, onSpeakingStarted: Action, onspeakingFinished: Action): void;
+        speak(text: string, lang: string, onSpeakingStarted: Action, onSpeakingFinished: Action, onEarlySpeakingFinished: Action): void;
         stopSpeaking(): void;
     }
 
@@ -143,12 +143,12 @@ export namespace Speech {
             SpeechSynthesizer.instance.cacheString(text);
         }
 
-        public static speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null) {
+        public static speak(text: string, lang: string, onSpeakingStarted: Action = null, onSpeakingFinished: Action = null, onEarlySpeakingFinished: Action = null) {
             if (SpeechSynthesizer.instance == null) {
                 return;
             }
 
-            SpeechSynthesizer.instance.speak(text, lang, onSpeakingStarted, onSpeakingFinished);
+            SpeechSynthesizer.instance.speak(text, lang, onSpeakingStarted, onSpeakingFinished, onEarlySpeakingFinished);
         }
 
         public static stopSpeaking() {

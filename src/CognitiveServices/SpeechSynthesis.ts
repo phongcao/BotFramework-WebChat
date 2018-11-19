@@ -7,6 +7,7 @@ export interface ICognitiveServicesSpeechSynthesisProperties {
     voiceName?: string;
     onSpeakingStarted?: Action;
     onSpeakingFinished?: Action;
+    onEarlySpeakingFinished?: Action;
     localAudioMap?: { [key: string]: string };
     phonemeReplacementMap?: Map<string, string>;
     localAudioCacheLimit?: number;
@@ -25,6 +26,7 @@ interface SpeakRequest {
     wavFileLocation: string;
     onSpeakingStarted: Action;
     onSpeakingFinished: Action;
+    onEarlySpeakingFinished: Action;
 }
 
 interface HttpHeader {
@@ -44,6 +46,9 @@ declare var webkitAudioContext: {
 };
 
 export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
+    private static readonly PLAYER_TIMER_INTERVAL: number = 100; // 100 milliseconds
+    private static readonly SILENCE_TRIM_TIME: number = 1; // 1 second
+
     // tslint:disable:variable-name
     private _requestQueue: SpeakRequest[] = null;
     private _localAudioCacheMap: Map<string, ArrayBuffer>;
@@ -54,10 +59,11 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
     private _properties: ICognitiveServicesSpeechSynthesisProperties;
     private _onSpeakingStarted: Action;
     private _onSpeakingFinished: Action;
+    private _onEarlySpeakingFinished: Action;
     private _localAudioMap?: { [key: string]: string };
     private _phonemeReplacementMap?: Map<string, string>;
     private _localAudioCacheLimit: number;
-    private _region: string;
+    private _timerId: number;
     // tslint:enable:variable-name
 
     constructor(properties: ICognitiveServicesSpeechSynthesisProperties) {
@@ -68,9 +74,10 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this._localAudioMap = properties.localAudioMap;
         this._onSpeakingStarted = properties.onSpeakingStarted;
         this._onSpeakingFinished = properties.onSpeakingFinished;
+        this._onEarlySpeakingFinished = properties.onEarlySpeakingFinished;
         this._phonemeReplacementMap = properties.phonemeReplacementMap;
         this._localAudioCacheLimit = properties.localAudioCacheLimit || 1000;
-        this._region = properties.region || undefined;
+        this._timerId = 0;
     }
 
     public cacheString = (text: string): void => {
@@ -96,9 +103,10 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         this.cacheSpeechData(text);
     }
 
-    public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished): void => {
+    public speak = (text: string, lang: string, onSpeakingStarted: Action = this._onSpeakingStarted, onSpeakingFinished: Action = this._onSpeakingFinished, onEarlySpeakingFinished: Action = this._onEarlySpeakingFinished): void => {
         onSpeakingStarted = this._onSpeakingStarted;
         onSpeakingFinished = this._onSpeakingFinished;
+        onEarlySpeakingFinished = this._onEarlySpeakingFinished;
         this._requestQueue.push(
             {
                 isReadyToPlay: false,
@@ -107,7 +115,8 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                 text,
                 locale: lang,
                 onSpeakingStarted,
-                onSpeakingFinished
+                onSpeakingFinished,
+                onEarlySpeakingFinished
             }
         );
 
@@ -174,6 +183,20 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                 this._localAudioPlayer.play();
                 if (top.onSpeakingStarted) {
                     top.onSpeakingStarted();
+                }
+
+                if (top.onEarlySpeakingFinished) {
+                    if (this._timerId) {
+                        clearInterval(this._timerId);
+                    }
+
+                    this._timerId = setInterval(() => {
+                        if (this._localAudioPlayer.currentTime + SpeechSynthesizer.SILENCE_TRIM_TIME >= this._localAudioPlayer.duration) {
+                            top.onEarlySpeakingFinished();
+                            clearInterval(this._timerId);
+                            this._timerId = 0;
+                        }
+                    }, SpeechSynthesizer.PLAYER_TIMER_INTERVAL);
                 }
 
                 this._localAudioPlayer.onended = () => {
@@ -475,7 +498,7 @@ class CognitiveServicesHelper {
             return this._synthesisURL;
         }
 
-        return 'https://' +  this._region + '.tts.speech.microsoft.com/cognitiveservices/v1';
+        return 'https://' + this._region + '.tts.speech.microsoft.com/cognitiveservices/v1';
     }
 
     // source: https://docs.microsoft.com/en-us/azure/cognitive-services/speech/api-reference-rest/bingvoiceoutput
