@@ -225,6 +225,8 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
                     this._isPlaying = false;
                     if (top.onSpeakingFinished) {
                         top.onSpeakingFinished();
+                    } else if (top.onEarlySpeakingFinished) {
+                        top.onEarlySpeakingFinished();
                     }
                     this._requestQueue = this._requestQueue.slice(1, this._requestQueue.length);
                     if (this._requestQueue.length > 0) {
