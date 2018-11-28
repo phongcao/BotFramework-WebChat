@@ -22,6 +22,7 @@ export interface ICognitiveServicesSpeechRecognizerProperties {
     cid?: string;
     region?: string;
     recognitionEventListener?: (status: string, result?: string) => void;
+    intermediateResultListener?: (result: string) => void;
     conversationMode?: boolean;
 }
 
@@ -40,6 +41,7 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
     private grammars: string[] = null;
     private properties: ICognitiveServicesSpeechRecognizerProperties;
     private recognitionEventListener: (status: string, result?: string) => void = null;
+    private intermediateResultListener: (result: string) => void = null;
 
     constructor(properties: ICognitiveServicesSpeechRecognizerProperties = {}) {
         this.properties = properties;
@@ -106,6 +108,10 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
         if (properties.recognitionEventListener) {
             this.recognitionEventListener = properties.recognitionEventListener;
         }
+
+        if (properties.intermediateResultListener) {
+            this.intermediateResultListener = properties.intermediateResultListener;
+        }
     }
 
     // tslint:disable-next-line:no-empty
@@ -141,6 +147,9 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
                     this.log('Hypothesis Result: ' + hypothesisEvent.Result.Text);
                     if (this.onIntermediateResult) {
                         this.onIntermediateResult(hypothesisEvent.Result.Text);
+                    }
+                    if (this.intermediateResultListener) {
+                        this.intermediateResultListener(hypothesisEvent.Result.Text);
                     }
                     break;
                 case 'SpeechSimplePhraseEvent':
