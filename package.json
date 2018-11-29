@@ -1,6 +1,6 @@
 {
   "name": "botframework-webchat-cris",
-  "version": "0.15.6",
+  "version": "0.15.7",
   "description": "Embeddable web chat control for the Microsoft Bot Framework (using CRIS endpoint for speech)",
   "main": "built/BotChat.js",
   "types": "built/BotChat.d.ts",
