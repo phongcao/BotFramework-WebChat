@@ -247,6 +247,12 @@ export class SpeechRecognizer implements Speech.ISpeechRecognizer {
         return;
     }
 
+    public sendMessage(message: string) {
+        if (this.onFinalResult) {
+            this.onFinalResult(message);
+        }
+    }
+
     private log(message: string) {
         konsole.log('CognitiveServicesSpeechRecognizer: ' + message);
     }
