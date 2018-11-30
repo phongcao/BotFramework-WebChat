@@ -59,6 +59,7 @@ export namespace Speech {
         cacheString(text: string): void;
         speak(text: string, lang: string, onSpeakingStarted: Action, onSpeakingFinished: Action, onEarlySpeakingFinished: Action): void;
         stopSpeaking(): void;
+        stopAudio(): void;
     }
 
     export class SpeechRecognizer {
@@ -354,6 +355,11 @@ export namespace Speech {
                     ss.cancel();
                 }
             }
+        }
+
+        public stopAudio() {
+            // Not using local audio player
+            return;
         }
 
         private playNextTTS(requestContainer: SpeakRequest, iCurrent: number) {
