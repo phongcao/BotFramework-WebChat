@@ -152,6 +152,17 @@ export class SpeechSynthesizer implements Speech.ISpeechSynthesizer {
         }
     }
 
+    // Stops speaking and local audio player (used for cached utterances).
+    stopAudio(): void {
+        if (this._isPlaying) {
+            if (this._localAudioPlayer && this._localAudioPlayer.currentTime !== 0) {
+                this._localAudioPlayer.pause();
+                this._localAudioPlayer.currentTime = 0;
+            }
+            this.stopSpeaking();
+        }
+    }
+
     private playAudio() {
         if (this._requestQueue.length === 0) {
             return;
