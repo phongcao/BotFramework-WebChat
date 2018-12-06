@@ -39,6 +39,17 @@ export const sendFiles = (files: FileList, from: User, locale: string) => ({
     }
 } as ChatActions);
 
+export const sendEvent = (name: string, value: string, from: User, locale: string) => ({
+    type: 'Send_Message',
+    activity: {
+        type: 'event',
+        name,
+        value,
+        from,
+        locale
+    }
+} as ChatActions);
+
 const attachmentsFromFiles = (files: FileList) => {
     const attachments: Media[] = [];
     for (let i = 0, numFiles = files.length; i < numFiles; i++) {
