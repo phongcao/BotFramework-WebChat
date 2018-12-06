@@ -11,7 +11,7 @@ import { getTabIndex } from './getTabIndex';
 import * as konsole from './Konsole';
 import { Speech } from './SpeechModule';
 import { SpeechOptions } from './SpeechOptions';
-import { ChatActions, createStore, sendMessage } from './Store';
+import { ChatActions, createStore, sendEvent, sendMessage } from './Store';
 import { ActivityOrID, FormatOptions } from './Types';
 
 export interface ChatProps {
@@ -50,6 +50,8 @@ export class Chat extends React.Component<ChatProps, {}> {
     private shellRef: React.Component & ShellFunctions;
     private historyRef: React.Component;
     private chatviewPanelRef: HTMLElement;
+    private user: User;
+    private locale: string;
 
     private resizeListener = () => this.setSize();
 
@@ -190,6 +192,10 @@ export class Chat extends React.Component<ChatProps, {}> {
         this.shellRef = shellWrapper && shellWrapper.getWrappedInstance();
     }
 
+    public sendActivityEvent(name: string, value: string) {
+        this.store.dispatch<ChatActions>(sendEvent(name, value, this.user, this.locale));
+    }
+
     componentDidMount() {
         // Now that we're mounted, we know our dimensions. Put them in the store (this will force a re-render)
         this.setSize();
@@ -243,6 +249,9 @@ export class Chat extends React.Component<ChatProps, {}> {
                 });
             });
         }
+
+        this.user = this.props.user;
+        this.locale = this.props.locale || (window.navigator as any).userLanguage || window.navigator.language || 'en';
     }
 
     componentWillUnmount() {
